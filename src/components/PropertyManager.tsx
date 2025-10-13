@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, MapPin, Star, Archive, Loader2 } from 'lucide-react';
+import { Plus, Edit2, MapPin, Star, Archive, Loader2, CheckCircle, Clock, AlertCircle, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { geocodeAddress } from '../lib/geocoding';
 import { Property, Rating, Criterion } from '../types';
@@ -179,6 +179,61 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
     if (propertyRatings.length === 0) return 'none';
     if (propertyRatings.length === criteria.length) return 'complete';
     return 'partial';
+  }
+
+  function getPropertyBadges(property: Property) {
+    const badges = [];
+    const status = getRatingStatus(property.id);
+
+    if (status === 'complete') {
+      badges.push({
+        icon: CheckCircle,
+        text: 'Fully Rated',
+        bgColor: 'bg-green-100',
+        textColor: 'text-green-800',
+        iconColor: 'text-green-600'
+      });
+    } else if (status === 'partial') {
+      badges.push({
+        icon: AlertCircle,
+        text: 'Partial Rating',
+        bgColor: 'bg-yellow-100',
+        textColor: 'text-yellow-800',
+        iconColor: 'text-yellow-600'
+      });
+    } else if (property.date_viewed) {
+      badges.push({
+        icon: Clock,
+        text: 'Viewed',
+        bgColor: 'bg-blue-100',
+        textColor: 'text-blue-800',
+        iconColor: 'text-blue-600'
+      });
+    } else {
+      badges.push({
+        icon: MapPin,
+        text: 'Not Viewed',
+        bgColor: 'bg-gray-100',
+        textColor: 'text-gray-600',
+        iconColor: 'text-gray-500'
+      });
+    }
+
+    const propertyRatings = ratings.filter(r => r.property_id === property.id);
+    if (propertyRatings.length > 0) {
+      const avgScore = propertyRatings.reduce((sum, r) => sum + r.score, 0) / propertyRatings.length;
+      if (avgScore >= 2.5) {
+        badges.push({
+          icon: TrendingUp,
+          text: 'Top Pick',
+          bgColor: 'bg-purple-100',
+          textColor: 'text-purple-800',
+          iconColor: 'text-purple-600'
+        });
+      }
+    }
+
+    return badges;
   }
 
   const displayProperties = properties.filter(p => showArchived ? p.archived : !p.archived);
@@ -384,29 +439,32 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
           const status = getRatingStatus(property.id);
           return (
             <div key={property.id} className="bg-white rounded-lg shadow-md p-5 space-y-3">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-gray-900">{property.name}</h3>
-                  <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                    <MapPin size={14} />
-                    {property.neighborhood}
-                  </div>
+              <div>
+                <h3 className="font-semibold text-lg text-gray-900">{property.name}</h3>
+                <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
+                  <MapPin size={14} />
+                  {property.neighborhood}
                 </div>
-                {status === 'complete' && (
-                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                    Rated
-                  </span>
+                {property.date_viewed && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Viewed {new Date(property.date_viewed).toLocaleDateString()}
+                  </p>
                 )}
-                {status === 'partial' && (
-                  <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
-                    Partial
-                  </span>
-                )}
-                {status === 'none' && (
-                  <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
-                    Not Rated
-                  </span>
-                )}
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {getPropertyBadges(property).map((badge, idx) => {
+                  const Icon = badge.icon;
+                  return (
+                    <span
+                      key={idx}
+                      className={`${badge.bgColor} ${badge.textColor} text-xs px-2 py-1 rounded-full flex items-center gap-1 font-medium`}
+                    >
+                      <Icon size={12} className={badge.iconColor} />
+                      {badge.text}
+                    </span>
+                  );
+                })}
               </div>
 
               <p className="text-sm text-gray-600">{property.address}</p>
