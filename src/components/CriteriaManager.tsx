@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Criterion, CriterionType } from '../types';
+import { Criterion, CriterionType, Property } from '../types';
 
 export function CriteriaManager() {
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showBulkRatingPrompt, setShowBulkRatingPrompt] = useState(false);
+  const [newCriterionId, setNewCriterionId] = useState<string | null>(null);
+  const [propertiesNeedingRating, setPropertiesNeedingRating] = useState<Property[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     type: 'must-have' as CriterionType,
@@ -48,22 +51,50 @@ export function CriteriaManager() {
       if (error) {
         console.error('Error updating criterion:', error);
       }
+
+      resetForm();
+      loadCriteria();
     } else {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('criteria')
         .insert({
           name: formData.name,
           type: formData.type,
           definition: formData.definition || null
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Error creating criterion:', error);
+        resetForm();
+        loadCriteria();
+      } else if (data) {
+        const propertiesResult = await supabase
+          .from('properties')
+          .select('*')
+          .eq('archived', false);
+
+        if (propertiesResult.data && propertiesResult.data.length > 0) {
+          const ratingsResult = await supabase
+            .from('ratings')
+            .select('property_id')
+            .eq('criterion_id', data.id);
+
+          const ratedPropertyIds = new Set(ratingsResult.data?.map(r => r.property_id) || []);
+          const unratedProperties = propertiesResult.data.filter(p => !ratedPropertyIds.has(p.id));
+
+          if (unratedProperties.length > 0) {
+            setNewCriterionId(data.id);
+            setPropertiesNeedingRating(unratedProperties);
+            setShowBulkRatingPrompt(true);
+          }
+        }
+
+        resetForm();
+        loadCriteria();
       }
     }
-
-    resetForm();
-    loadCriteria();
   }
 
   async function handleDelete(id: string) {
@@ -99,11 +130,83 @@ export function CriteriaManager() {
     setIsAdding(false);
   }
 
+  async function handleBulkRating(score: 1 | 2 | 3) {
+    if (!newCriterionId) return;
+
+    const ratingsToInsert = propertiesNeedingRating.map(property => ({
+      property_id: property.id,
+      criterion_id: newCriterionId,
+      score,
+      notes: null
+    }));
+
+    const { error } = await supabase
+      .from('ratings')
+      .insert(ratingsToInsert);
+
+    if (error) {
+      console.error('Error creating bulk ratings:', error);
+    }
+
+    setShowBulkRatingPrompt(false);
+    setNewCriterionId(null);
+    setPropertiesNeedingRating([]);
+  }
+
+  function dismissBulkRating() {
+    setShowBulkRatingPrompt(false);
+    setNewCriterionId(null);
+    setPropertiesNeedingRating([]);
+  }
+
   const mustHaves = criteria.filter(c => c.type === 'must-have');
   const niceToHaves = criteria.filter(c => c.type === 'nice-to-have');
 
   return (
     <div className="space-y-6">
+      {showBulkRatingPrompt && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="text-blue-600 mt-0.5" size={20} />
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Rate Existing Properties?
+              </h3>
+              <p className="text-sm text-gray-700 mb-4">
+                You have {propertiesNeedingRating.length} existing {propertiesNeedingRating.length === 1 ? 'property' : 'properties'} without ratings for this new criterion.
+                Would you like to apply a default rating to all of them now? You can always adjust individual ratings later.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleBulkRating(3)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                >
+                  Rate All as "Meets"
+                </button>
+                <button
+                  onClick={() => handleBulkRating(2)}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
+                >
+                  Rate All as "Partial"
+                </button>
+                <button
+                  onClick={() => handleBulkRating(1)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                >
+                  Rate All as "Doesn't Meet"
+                </button>
+                <button
+                  onClick={dismissBulkRating}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+                >
+                  Skip - I'll Rate Manually
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Search Criteria</h2>
         {!isAdding && (
