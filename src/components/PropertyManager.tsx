@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, MapPin, Star, Archive, Loader2, CheckCircle, Clock, AlertCircle, TrendingUp, Navigation } from 'lucide-react';
+import { Plus, Edit2, MapPin, Star, Archive, Loader2, CheckCircle, Clock, AlertCircle, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { geocodeAddress } from '../lib/geocoding';
-import { calculateDistance } from '../lib/distance';
-import { Property, Rating, Criterion, Location } from '../types';
+import { Property, Rating, Criterion } from '../types';
 
 interface PropertyManagerProps {
   onRate: (propertyId: string) => void;
@@ -13,7 +12,6 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
   const [properties, setProperties] = useState<Property[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [criteria, setCriteria] = useState<Criterion[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -36,7 +34,6 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
     loadProperties();
     loadRatings();
     loadCriteria();
-    loadLocations();
   }, []);
 
   async function loadProperties() {
@@ -74,32 +71,6 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
     } else {
       setCriteria(data || []);
     }
-  }
-
-  async function loadLocations() {
-    const { data, error } = await supabase
-      .from('locations')
-      .select('*');
-
-    if (error) {
-      console.error('Error loading locations:', error);
-    } else {
-      setLocations(data || []);
-    }
-  }
-
-  function getPropertyDistances(property: Property) {
-    if (!property.latitude || !property.longitude) return [];
-
-    return locations.map(location => ({
-      locationName: location.name,
-      distance: calculateDistance(
-        property.latitude!,
-        property.longitude!,
-        location.latitude,
-        location.longitude
-      )
-    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -510,23 +481,6 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
 
               {property.notes && (
                 <p className="text-sm text-gray-700 italic">{property.notes}</p>
-              )}
-
-              {locations.length > 0 && (
-                <div className="border-t pt-3 mt-3">
-                  <div className="flex items-center gap-1 text-xs font-medium text-gray-700 mb-2">
-                    <Navigation size={12} />
-                    Distances
-                  </div>
-                  <div className="space-y-1">
-                    {getPropertyDistances(property).map((dist, idx) => (
-                      <div key={idx} className="flex justify-between text-xs text-gray-600">
-                        <span>{dist.locationName}</span>
-                        <span className="font-medium">{dist.distance} mi</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               )}
 
               <div className="flex gap-2 pt-2">

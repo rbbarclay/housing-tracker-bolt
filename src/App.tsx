@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { Home, List, MapIcon, Star, BarChart3, Navigation } from 'lucide-react';
+import { Home, List, MapIcon, Star, BarChart3 } from 'lucide-react';
 import { CriteriaManager } from './components/CriteriaManager';
 import { PropertyManager } from './components/PropertyManager';
 import { PropertyMap } from './components/PropertyMap';
 import { RatingForm } from './components/RatingForm';
 import { Reports } from './components/Reports';
-import { LocationManager } from './components/LocationManager';
 
-type View = 'home' | 'criteria' | 'properties' | 'map' | 'rate' | 'reports' | 'locations';
+type View = 'home' | 'criteria' | 'properties' | 'map' | 'rate' | 'reports';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -80,18 +79,6 @@ function App() {
               >
                 <BarChart3 size={20} />
                 <span className="hidden sm:inline">Reports</span>
-              </button>
-
-              <button
-                onClick={() => setCurrentView('locations')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  currentView === 'locations'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Navigation size={20} />
-                <span className="hidden sm:inline">Locations</span>
               </button>
             </div>
           </div>
@@ -172,7 +159,6 @@ function App() {
           <RatingForm propertyId={ratingPropertyId} onBack={handleBackFromRating} />
         )}
         {currentView === 'reports' && <Reports />}
-        {currentView === 'locations' && <LocationManager />}
       </main>
     </div>
   );
