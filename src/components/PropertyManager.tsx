@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, MapPin, Star, Archive, Loader2, CheckCircle, Clock, AlertCircle, TrendingUp } from 'lucide-react';
+import { Plus, Edit2, MapPin, Star, Archive, Loader2, CheckCircle, Clock, AlertCircle, TrendingUp, MapPinned, MapPinOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { geocodeAddress } from '../lib/geocoding';
 import { Property, Rating, Criterion } from '../types';
@@ -231,6 +231,24 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
           iconColor: 'text-purple-600'
         });
       }
+    }
+
+    if (property.latitude && property.longitude) {
+      badges.push({
+        icon: MapPinned,
+        text: 'Mapped',
+        bgColor: 'bg-green-100',
+        textColor: 'text-green-800',
+        iconColor: 'text-green-600'
+      });
+    } else {
+      badges.push({
+        icon: MapPinOff,
+        text: 'Not Mapped',
+        bgColor: 'bg-red-100',
+        textColor: 'text-red-800',
+        iconColor: 'text-red-600'
+      });
     }
 
     return badges;
