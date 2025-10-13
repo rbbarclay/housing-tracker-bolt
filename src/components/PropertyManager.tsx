@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, MapPin, Star, Archive } from 'lucide-react';
+import { Plus, Edit2, MapPin, Star, Archive, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { geocodeAddress } from '../lib/geocoding';
 import { Property, Rating, Criterion } from '../types';
 
 interface PropertyManagerProps {
@@ -14,6 +15,8 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -72,6 +75,16 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setIsGeocoding(true);
+    setGeocodeError(null);
+
+    const geocodeResult = await geocodeAddress(formData.address);
+
+    if (!geocodeResult.success) {
+      setGeocodeError(geocodeResult.error || 'Failed to geocode address');
+      setIsGeocoding(false);
+      return;
+    }
 
     const propertyData = {
       name: formData.name,
@@ -84,6 +97,8 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
       date_viewed: formData.date_viewed || null,
       listing_url: formData.listing_url || null,
       notes: formData.notes || null,
+      latitude: geocodeResult.latitude,
+      longitude: geocodeResult.longitude,
       updated_at: new Date().toISOString()
     };
 
@@ -106,6 +121,7 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
       }
     }
 
+    setIsGeocoding(false);
     resetForm();
     loadProperties();
   }
@@ -155,6 +171,7 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
     });
     setEditingId(null);
     setIsAdding(false);
+    setGeocodeError(null);
   }
 
   function getRatingStatus(propertyId: string): 'complete' | 'partial' | 'none' {
@@ -191,6 +208,12 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
 
       {isAdding && (
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md space-y-4">
+          {geocodeError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              <p className="text-sm">{geocodeError}</p>
+              <p className="text-xs mt-1">Please verify the address and try again. The property will still be saved but won't appear on the map.</p>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -331,9 +354,11 @@ export function PropertyManager({ onRate }: PropertyManagerProps) {
           <div className="flex gap-2">
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              disabled={isGeocoding}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              {editingId ? 'Update' : 'Save'} Property
+              {isGeocoding && <Loader2 size={16} className="animate-spin" />}
+              {isGeocoding ? 'Finding location...' : `${editingId ? 'Update' : 'Save'} Property`}
             </button>
             <button
               type="button"

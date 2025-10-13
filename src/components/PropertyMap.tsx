@@ -50,11 +50,13 @@ export function PropertyMap() {
     return (
       <div className="bg-white rounded-lg shadow-md p-8 text-center">
         <p className="text-gray-600">
-          No properties with location data yet. Properties will appear on the map once you add them.
+          No properties with location data yet. Properties will appear on the map once you add them with valid addresses.
         </p>
-        <p className="text-sm text-gray-500 mt-2">
-          (Note: In this MVP, you'll need to manually add latitude/longitude coordinates to properties to display them on the map)
-        </p>
+        {properties.length > 0 && (
+          <p className="text-sm text-gray-500 mt-2">
+            You have {properties.length} property(ies), but they couldn't be located on the map. This may happen if the address couldn't be geocoded.
+          </p>
+        )}
       </div>
     );
   }
