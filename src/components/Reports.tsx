@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ExternalLink, MapPin, Check, AlertTriangle, X } from 'lucide-react';
+import { ChevronDown, ExternalLink, MapPin, Check, AlertTriangle, X, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Property, Criterion, Rating, PropertyScore } from '../types';
 import { calculatePropertyScore, sortPropertiesByScore, filterTier1Properties, sortPropertiesByCriterion } from '../lib/scoring';
@@ -26,6 +26,65 @@ export function Reports() {
     if (propertiesResult.data) setProperties(propertiesResult.data);
     if (criteriaResult.data) setCriteria(criteriaResult.data);
     if (ratingsResult.data) setRatings(ratingsResult.data);
+  }
+
+  function exportToCSV() {
+    const csvRows = [];
+
+    const headers = [
+      'Rank',
+      'Property Name',
+      'Address',
+      'Neighborhood',
+      'Price',
+      'Bedrooms',
+      'Bathrooms',
+      'Sqft',
+      'Date Viewed',
+      'Total Score',
+      'Must-Have Score',
+      'Nice-to-Have Score',
+      'Meets All Must-Haves',
+      ...criteria.map(c => `${c.name} (${c.type})`),
+      'Property Notes'
+    ];
+    csvRows.push(headers.join(','));
+
+    displayScores.forEach((score, index) => {
+      const row = [
+        index + 1,
+        `"${score.property.name.replace(/"/g, '""')}"`,
+        `"${score.property.address.replace(/"/g, '""')}"`,
+        `"${score.property.neighborhood.replace(/"/g, '""')}"`,
+        score.property.price || '',
+        score.property.bedrooms || '',
+        score.property.bathrooms || '',
+        score.property.sqft || '',
+        score.property.date_viewed || '',
+        score.totalScore.toFixed(2),
+        score.mustHaveScore.toFixed(2),
+        score.niceToHaveScore.toFixed(2),
+        score.meetsAllMustHaves ? 'Yes' : 'No',
+        ...criteria.map(c => {
+          const rating = score.ratings.find(r => r.criterion_id === c.id);
+          return rating ? rating.score : '';
+        }),
+        score.property.notes ? `"${score.property.notes.replace(/"/g, '""')}"` : ''
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `property-rankings-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   const propertyScores: PropertyScore[] = properties.map(property => {
@@ -86,6 +145,13 @@ export function Reports() {
         <h2 className="text-2xl font-bold text-gray-900">Property Rankings</h2>
 
         <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={exportToCSV}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+          >
+            <Download size={18} />
+            Export CSV
+          </button>
           <div className="flex rounded-lg overflow-hidden border border-gray-300">
             <button
               onClick={() => setViewMode('tier1')}
