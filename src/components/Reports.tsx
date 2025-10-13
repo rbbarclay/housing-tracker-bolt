@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ExternalLink, MapPin, Check, AlertTriangle, X, Download } from 'lucide-react';
+import { ChevronDown, ExternalLink, MapPin, Check, AlertTriangle, X, Download, Navigation } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Property, Criterion, Rating, PropertyScore } from '../types';
+import { Property, Criterion, Rating, PropertyScore, Location } from '../types';
 import { calculatePropertyScore, sortPropertiesByScore, filterTier1Properties, sortPropertiesByCriterion } from '../lib/scoring';
+import { calculateDistance } from '../lib/distance';
 
 export function Reports() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [viewMode, setViewMode] = useState<'tier1' | 'tier2'>('tier1');
   const [sortBy, setSortBy] = useState<'total' | string>('total');
   const [expandedProperty, setExpandedProperty] = useState<string | null>(null);
@@ -17,15 +19,31 @@ export function Reports() {
   }, []);
 
   async function loadData() {
-    const [propertiesResult, criteriaResult, ratingsResult] = await Promise.all([
+    const [propertiesResult, criteriaResult, ratingsResult, locationsResult] = await Promise.all([
       supabase.from('properties').select('*').eq('archived', false),
       supabase.from('criteria').select('*'),
-      supabase.from('ratings').select('*')
+      supabase.from('ratings').select('*'),
+      supabase.from('locations').select('*')
     ]);
 
     if (propertiesResult.data) setProperties(propertiesResult.data);
     if (criteriaResult.data) setCriteria(criteriaResult.data);
     if (ratingsResult.data) setRatings(ratingsResult.data);
+    if (locationsResult.data) setLocations(locationsResult.data);
+  }
+
+  function getPropertyDistances(property: Property) {
+    if (!property.latitude || !property.longitude) return [];
+
+    return locations.map(location => ({
+      locationName: location.name,
+      distance: calculateDistance(
+        property.latitude!,
+        property.longitude!,
+        location.latitude,
+        location.longitude
+      )
+    }));
   }
 
   function exportToCSV() {
@@ -46,11 +64,13 @@ export function Reports() {
       'Nice-to-Have Score',
       'Meets All Must-Haves',
       ...criteria.map(c => `${c.name} (${c.type})`),
+      ...locations.map(l => `Distance to ${l.name} (mi)`),
       'Property Notes'
     ];
     csvRows.push(headers.join(','));
 
     displayScores.forEach((score, index) => {
+      const distances = getPropertyDistances(score.property);
       const row = [
         index + 1,
         `"${score.property.name.replace(/"/g, '""')}"`,
@@ -68,6 +88,10 @@ export function Reports() {
         ...criteria.map(c => {
           const rating = score.ratings.find(r => r.criterion_id === c.id);
           return rating ? rating.score : '';
+        }),
+        ...locations.map(l => {
+          const dist = distances.find(d => d.locationName === l.name);
+          return dist ? dist.distance : '';
         }),
         score.property.notes ? `"${score.property.notes.replace(/"/g, '""')}"` : ''
       ];
@@ -285,6 +309,23 @@ export function Reports() {
                   <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                     <div className="text-sm font-medium text-gray-700 mb-1">Notes</div>
                     <div className="text-sm text-gray-600 italic">{score.property.notes}</div>
+                  </div>
+                )}
+
+                {locations.length > 0 && (
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                      <Navigation size={16} />
+                      Distances to Key Locations
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {getPropertyDistances(score.property).map((dist, idx) => (
+                        <div key={idx} className="flex justify-between text-sm">
+                          <span className="text-gray-700">{dist.locationName}:</span>
+                          <span className="font-semibold text-gray-900">{dist.distance} mi</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 

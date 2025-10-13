@@ -56,3 +56,19 @@ export interface RatingFormData {
   score: 1 | 2 | 3;
   notes?: string;
 }
+
+export interface Location {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PropertyDistance {
+  propertyId: string;
+  locationId: string;
+  distance: number;
+}
