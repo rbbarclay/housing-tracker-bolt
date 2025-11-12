@@ -1,6 +1,46 @@
 # Housing Search Tracker
 
-A web application to help apartment and home searchers track properties, evaluate them against custom criteria, and make data-driven housing decisions.
+A collaborative web application to help apartment and home searchers track properties, evaluate them against custom criteria, and make data-driven housing decisions together.
+
+**Current Version:** 0.1.0 (Prototype)
+**MVP Target:** 0.2.0 (January 2026)
+**Status:** 📋 Planning Complete → 🚧 Ready for Development
+
+---
+
+## 🚀 Quick Links
+
+- **[Start Development](./GETTING_STARTED.md)** - New to the project? Start here!
+- **[Technical Spec](./TECHNICAL_SPEC.md)** - Architecture & implementation details
+- **[Project Plan](./PROJECT_PLAN.md)** - Task tracking & progress
+- **[Product Requirements](./prd-mvp.md)** - What we're building
+- **[Changelog](./CHANGELOG.md)** - Version history
+
+---
+
+## 📋 Current Status: Prototype → MVP Transition
+
+We have a working prototype with positive feedback. Now we're building a production-ready MVP with:
+
+**✅ Prototype Features (Complete):**
+- Criteria management
+- Property tracking
+- Rating system
+- Reports & rankings
+- Interactive map
+- CSV export
+
+**🚧 MVP Features (In Planning):**
+- User authentication & profiles
+- Group collaboration (couples, roommates, families)
+- Multi-user independent ratings
+- Financial modeling (Month 1, Year 1, Year 2 costs)
+- Secure data isolation
+- Mobile-optimized onboarding
+
+**Target:** 6-8 weeks of development (280+ tasks across 9 phases)
+
+---
 
 ## Features
 
@@ -120,16 +160,25 @@ All tables have Row Level Security (RLS) enabled.
 
 For the MVP, the map view requires manually adding latitude/longitude coordinates to properties. In future versions, this will be automated via a geocoding API.
 
-## Future Enhancements
+## 🗺️ Roadmap
 
-Potential features for v2:
-- Address autocomplete with automatic geocoding
-- CSV export for data analysis
-- Photo uploads for properties
-- Multi-user support with authentication
-- Collaborative decision-making for couples/roommates
-- Distance calculations to key locations
-- Mobile app version
+### MVP (v0.2.0) - Target: January 2026
+- ✅ User authentication (email/password)
+- ✅ Group collaboration
+- ✅ Multi-user ratings
+- ✅ Financial modeling
+- ✅ Secure data isolation
+- ✅ Mobile-optimized UX
+
+### Post-MVP (v0.3.0+)
+- Real-time collaboration
+- Email notifications
+- Photo uploads
+- Address autocomplete
+- Mobile native apps
+- Advanced analytics
+
+See [CHANGELOG.md](./CHANGELOG.md) for detailed roadmap.
 
 ## License
 
